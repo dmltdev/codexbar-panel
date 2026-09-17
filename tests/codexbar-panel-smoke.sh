@@ -89,7 +89,7 @@ expect_match() {
     fi
 }
 
-# --- one row per rate window, shortest first, values in a fixed column ------
+# --- one glyph row per rate window, shortest first, values aligned ----------
 
 write_fixture codex "$(jq -n \
     --argjson secondary "$(window 44 10080 "$(at_offset $((3 * 86400 + 21 * 3600 + 120)))")" \
@@ -104,28 +104,28 @@ write_fixture grok "$(jq -n \
     '{primary: $primary, secondary: null, tertiary: null}')"
 
 
-expect_eq "panel renders one row per window" \
-    "Codex wk   56% left, 3d 21h till reset
-Claude 5h  70% left, 3h 51m till reset
-Claude wk  96% left, 2d 1h till reset
-Grok mo    75% left, 29d 23h till reset" \
+expect_eq "panel renders glyph rows per window" \
+    "Codex W    ██████░░░░ 56% 3d21h
+Claude 5h  ███████░░░ 70% 3h51m
+Claude W   ██████████ 96% 2d1h
+Grok M     ████████░░ 75% 29d" \
     "$(run_script)"
 
-# Every row must put its percentage at the same column, or the values will not
-# line up in the widget. A digit inside a label (the "5h" window) means this
-# has to be anchored on the width, not on the first digit found.
-expect_eq "values start at a fixed column" \
+# Every row must put its bar at the same column, or the meters will not scan
+# as a widget. A digit inside a label (the "5h" window) means this has to be
+# anchored on the width, not on the first digit found.
+expect_eq "bars start at a fixed column" \
     "4" \
-    "$(run_script | grep -cE '^.{11}[0-9]+% left,')"
+    "$(run_script | grep -cE '^(Codex W    |Claude 5h  |Claude W   |Grok M     )█')"
 
 # --- a provider with no usable window still yields exactly one row ----------
 
 write_fixture claude '{"primary": null, "secondary": null, "tertiary": null}'
 
 expect_eq "provider with no windows yields one row" \
-    "Codex wk   56% left, 3d 21h till reset
+    "Codex W    ██████░░░░ 56% 3d21h
 Claude     usage unavailable
-Grok mo    75% left, 29d 23h till reset" \
+Grok M     ████████░░ 75% 29d" \
     "$(run_script)"
 
 # --- a provider that cannot be fetched at all still yields exactly one row ---
@@ -133,9 +133,9 @@ Grok mo    75% left, 29d 23h till reset" \
 rm -f -- "$STUB_DIR/claude.json"
 
 expect_eq "unfetchable provider yields one row" \
-    "Codex wk   56% left, 3d 21h till reset
+    "Codex W    ██████░░░░ 56% 3d21h
 Claude     usage unavailable
-Grok mo    75% left, 29d 23h till reset" \
+Grok M     ████████░░ 75% 29d" \
     "$(run_script)"
 
 # --- unparseable and elapsed reset timestamps degrade, never error -----------
@@ -146,11 +146,11 @@ write_fixture claude "$(jq -n \
     '{primary: $primary, secondary: $secondary, tertiary: null}')"
 
 expect_match "unparseable timestamp reads as unknown" \
-    '^Claude 5h  70% left, reset unknown$' \
+    '^Claude 5h  ███████░░░ 70% reset unknown$' \
     "$(run_script)"
 
 expect_match "elapsed window reads as zero" \
-    '^Claude wk  96% left, 0m till reset$' \
+    '^Claude W   ██████████ 96% 0m$' \
     "$(run_script)"
 
 # --- the widget must never be handed an empty result ------------------------

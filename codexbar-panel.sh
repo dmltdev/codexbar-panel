@@ -10,12 +10,12 @@
 #   codexbar-panel --details  multi-line per-provider detail, for a tooltip
 #   codexbar-panel --popup    the same detail in a kdialog textbox
 #
-# Panel output looks like this, padded so the values line up in a monospace
-# font:
+# Panel output looks like this: full provider name, compact window label,
+# ten-cell percent-left meter, exact headroom, and compact reset time.
 #
-#   Codex wk   56% left, 3d 21h till reset
-#   Claude 5h  70% left, 3h 51m till reset
-#   Claude wk  96% left, 2d 1h till reset
+#   Codex W    ██████░░░░ 56% 3d21h
+#   Claude 5h  ███████░░░ 70% 3h51m
+#   Claude W   ██████████ 96% 2d1h
 #
 # See README.md for requirements and for the Plasma widget settings.
 
@@ -95,11 +95,11 @@ def percentLeft:
   ((100 - .usedPercent) | floor)
   | if . < 0 then 0 elif . > 100 then 100 else . end;
 
-# Terse window name for the "<provider> <window>" row prefix.
+# Compact window name for the "<provider> <window>" row prefix.
 def laneShort:
   if (.windowMinutes // 0) == 300 then "5h"
-  elif (.windowMinutes // 0) == 10080 then "wk"
-  elif ((.windowMinutes // 0) >= 40000 and (.windowMinutes // 0) <= 45000) then "mo"
+  elif (.windowMinutes // 0) == 10080 then "W"
+  elif ((.windowMinutes // 0) >= 40000 and (.windowMinutes // 0) <= 45000) then "M"
   elif (.windowMinutes // null) != null then "\(.windowMinutes)m"
   else "--"
   end;
@@ -109,6 +109,29 @@ def laneShort:
 # but null is the identity for + on strings, so clamping at 0 is safe.
 def padTo($n):
   . + (" " * ([$n - length, 0] | max));
+
+# Ten-cell headroom meter. Rounded to the nearest 10% so midpoints like 75%
+# display as eight filled cells, matching how humans read battery-style meters.
+def glyphBar:
+  percentLeft as $p
+  | ([ (($p / 10 + 0.5) | floor), 10 ] | min) as $filled
+  | ("█" * $filled) + ("░" * (10 - $filled));
+
+# Panel reset text has no prose or spaces. Long monthly windows keep days only
+# so the Grok row stays narrow, while shorter windows keep the useful hour/minute.
+def resetPanel($iso):
+  secsUntil($iso) as $s
+  | if $s == null then "reset unknown"
+    elif $s <= 0 then "0m"
+    else ($s / 86400 | floor) as $d
+      | (($s - $d * 86400) / 3600 | floor) as $h
+      | (($s - $d * 86400 - $h * 3600) / 60 | floor) as $m
+      | if $d >= 7 then "\($d)d"
+        elif $d > 0 then "\($d)d\($h)h"
+        elif $h > 0 then "\($h)h\($m)m"
+        else "\($m)m"
+        end
+    end;
 
 # One row per main rate window, shortest window first. A provider with no
 # usable window still yields exactly one row, so a panel widget never renders
@@ -120,9 +143,9 @@ def panelRows($label; $pad):
     else $ls
       | map(
           ("\($label) \(laneShort)" | padTo($pad))
-          + "\(percentLeft)% left, "
-          + (resetShort(.resetsAt)
-             | if . == "?" then "reset unknown" else "\(.) till reset" end)
+          + "\(glyphBar) "
+          + "\(percentLeft)% "
+          + resetPanel(.resetsAt)
         )
     end;
 

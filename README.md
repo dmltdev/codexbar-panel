@@ -4,10 +4,10 @@
 one row per rate window:
 
 ```
-Codex wk   56% left, 3d 21h till reset
-Claude 5h  70% left, 3h 51m till reset
-Claude wk  96% left, 2d 1h till reset
-Grok mo    75% left, 29d 23h till reset
+Codex W    ██████░░░░ 56% 3d21h
+Claude 5h  ███████░░░ 70% 3h51m
+Claude W   ██████████ 96% 2d1h
+Grok M     ████████░░ 75% 29d
 ```
 
 It is the backing command for a desktop panel widget — originally the KDE Plasma
@@ -50,10 +50,10 @@ codexbar-panel --help
 
 Environment overrides:
 
-| Variable                       | Default | Purpose                                        |
-| ------------------------------ | ------- | ---------------------------------------------- |
-| `CODEXBAR_PANEL_TIMEOUT`       | `45`    | Seconds allowed per `codexbar` fetch           |
-| `CODEXBAR_PANEL_PAD_WIDTH`     | `11`    | Column at which the values start               |
+| Variable                       | Default | Purpose                                      |
+| ------------------------------ | ------- | -------------------------------------------- |
+| `CODEXBAR_PANEL_TIMEOUT`       | `45`    | Seconds allowed per `codexbar` fetch         |
+| `CODEXBAR_PANEL_PAD_WIDTH`     | `11`    | Column at which the meters start             |
 
 To change which providers are shown, edit the `PROVIDERS` array at the top of
 the script. Entries are `<codexbar provider slug>:<panel label>:<detail label>`.
@@ -102,8 +102,8 @@ Add a Command Output widget to a panel and set, under its configuration:
 | Font size          | `8`                      |
 | Font family        | `monospace`              |
 
-The font must be monospace or the value columns will not line up. Four rows at
-8pt may need more vertical room than the original three-row setup.
+The font must be monospace or the provider labels and meters will not line up.
+Four rows at 8pt may need more vertical room than the original three-row setup.
 
 `Wait for command` matters: with it enabled the widget's refresh timer only
 restarts once the process exits, so a hung fetch would freeze the widget rather
@@ -116,17 +116,22 @@ A panel widget renders an empty result as a blank widget, which reads as broken
 rather than as degraded. So the script prints exactly one row per provider on
 every path and exits `0`:
 
-| Situation                          | Row                                    |
-| ---------------------------------- | -------------------------------------- |
-| Provider cannot be fetched         | `Claude     usage unavailable`         |
-| Provider reports no usable window  | `Claude     usage unavailable`         |
-| `codexbar` or `jq` not on `PATH`   | `Claude     missing: codexbar`         |
-| Reset timestamp will not parse     | `Claude 5h  70% left, reset unknown`   |
+| Situation                          | Row                                             |
+| ---------------------------------- | ----------------------------------------------- |
+| Provider cannot be fetched         | `Claude     usage unavailable`                  |
+| Provider reports no usable window  | `Claude     usage unavailable`                  |
+| `codexbar` or `jq` not on `PATH`   | `Claude     missing: codexbar`                  |
+| Reset timestamp will not parse     | `Claude 5h  ███████░░░ 70% reset unknown`      |
 
 Reset times are always computed from the machine-readable `resetsAt` field,
 never from a provider's own `resetDescription` — Claude returns that with the
 spaces stripped, e.g. `Resets5:30pm(Europe/Sofia)`. Percentages are floored and
 clamped to 0–100 so headroom is never overstated.
+
+Panel rows use a ten-cell bar for percent left. Filled cells are rounded to the
+nearest 10% so `75%` displays as `████████░░`. Long monthly reset windows show
+days only to keep the Grok row narrow; details and popups keep the longer reset
+description.
 
 ## Development
 
