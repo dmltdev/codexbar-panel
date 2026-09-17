@@ -1,13 +1,11 @@
 # codexbar-panel
 
-`codexbar-panel` renders AI coding-assistant usage limits as fixed-width rows,
-one row per rate window:
+`codexbar-panel` renders AI coding-assistant usage limits as fixed-width cells,
+two windows per line:
 
 ```
-Codex W    ██████░░░░ 56% 3d21h
-Claude 5h  ███████░░░ 70% 3h51m
-Claude W   ██████████ 96% 2d1h
-Grok M     ████████░░ 75% 29d
+Codex W    ██████░░░░ 56% 3d21h   Claude 5h  ███████░░░ 70% 3h51m
+Claude W   ██████████ 96% 2d1h   Grok M     ████████░░ 75% 29d
 ```
 
 It is the backing command for a desktop panel widget — originally the KDE Plasma
@@ -103,7 +101,7 @@ Add a Command Output widget to a panel and set, under its configuration:
 | Font family        | `monospace`              |
 
 The font must be monospace or the provider labels and meters will not line up.
-Four rows at 8pt may need more vertical room than the original three-row setup.
+Two panel rows at 8pt fit the same height that used to show only three rows.
 
 `Wait for command` matters: with it enabled the widget's refresh timer only
 restarts once the process exits, so a hung fetch would freeze the widget rather
@@ -113,8 +111,8 @@ than skip a cycle. Every `codexbar` call is therefore bounded by
 ## Behaviour under failure
 
 A panel widget renders an empty result as a blank widget, which reads as broken
-rather than as degraded. So the script prints exactly one row per provider on
-every path and exits `0`:
+rather than as degraded. So the script prints one fixed-width cell per provider
+on every path and exits `0`:
 
 | Situation                          | Row                                             |
 | ---------------------------------- | ----------------------------------------------- |
@@ -128,10 +126,9 @@ never from a provider's own `resetDescription` — Claude returns that with the
 spaces stripped, e.g. `Resets5:30pm(Europe/Sofia)`. Percentages are floored and
 clamped to 0–100 so headroom is never overstated.
 
-Panel rows use a ten-cell bar for percent left. Filled cells are rounded to the
-nearest 10% so `75%` displays as `████████░░`. Long monthly reset windows show
-days only to keep the Grok row narrow; details and popups keep the longer reset
-description.
+Panel cells use a ten-cell bar for percent left. Filled cells are rounded to the
+nearest 10% so `75%` displays as `████████░░`. The panel packs two cells per
+line; details and popups keep the longer reset description.
 
 ## Development
 

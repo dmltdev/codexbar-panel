@@ -10,12 +10,11 @@
 #   codexbar-panel --details  multi-line per-provider detail, for a tooltip
 #   codexbar-panel --popup    the same detail in a kdialog textbox
 #
-# Panel output looks like this: full provider name, compact window label,
-# ten-cell percent-left meter, exact headroom, and compact reset time.
+# Panel output packs two windows per line: full provider name, compact window
+# label, ten-cell percent-left meter, exact headroom, and compact reset time.
 #
-#   Codex W    ██████░░░░ 56% 3d21h
-#   Claude 5h  ███████░░░ 70% 3h51m
-#   Claude W   ██████████ 96% 2d1h
+#   Codex W    ██████░░░░ 56% 3d21h   Claude 5h  ███████░░░ 70% 3h51m
+#   Claude W   ██████████ 96% 2d1h   Grok M     ████████░░ 75% 29d
 #
 # See README.md for requirements and for the Plasma widget settings.
 
@@ -223,17 +222,31 @@ fetch_provider() {
 }
 
 print_panel() {
+    rows=()
+
     for entry in "${PROVIDERS[@]}"; do
         IFS=: read -r slug short _detail <<<"$entry"
 
         if json="$(fetch_provider "$slug")"; then
-            jq -r --arg label "$short" --arg slug "$slug" --argjson pad "$PAD_WIDTH" \
+            if rendered="$(jq -r --arg label "$short" --arg slug "$slug" --argjson pad "$PAD_WIDTH" \
                 "$JQ_DEFS"'
                 pick($slug) | panelRows($label; $pad)[]
-            ' <<<"$json" 2>/dev/null ||
-                printf "%-${PAD_WIDTH}s%s\n" "$short" "usage unavailable"
+            ' <<<"$json" 2>/dev/null)" && [ -n "$rendered" ]; then
+                mapfile -t provider_rows <<<"$rendered"
+                rows+=("${provider_rows[@]}")
+            else
+                rows+=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
+            fi
         else
-            printf "%-${PAD_WIDTH}s%s\n" "$short" "usage unavailable"
+            rows+=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
+        fi
+    done
+
+    for ((i = 0; i < ${#rows[@]}; i += 2)); do
+        if [ "$((i + 1))" -lt "${#rows[@]}" ]; then
+            printf '%s   %s\n' "${rows[$i]}" "${rows[$((i + 1))]}"
+        else
+            printf '%s\n' "${rows[$i]}"
         fi
     done
 }

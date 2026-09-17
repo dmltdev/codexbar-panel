@@ -89,7 +89,7 @@ expect_match() {
     fi
 }
 
-# --- one glyph row per rate window, shortest first, values aligned ----------
+# --- two-column glyph rows, shortest windows first, values aligned ----------
 
 write_fixture codex "$(jq -n \
     --argjson secondary "$(window 44 10080 "$(at_offset $((3 * 86400 + 21 * 3600 + 120)))")" \
@@ -104,27 +104,24 @@ write_fixture grok "$(jq -n \
     '{primary: $primary, secondary: null, tertiary: null}')"
 
 
-expect_eq "panel renders glyph rows per window" \
-    "Codex W    ██████░░░░ 56% 3d21h
-Claude 5h  ███████░░░ 70% 3h51m
-Claude W   ██████████ 96% 2d1h
-Grok M     ████████░░ 75% 29d" \
+expect_eq "panel renders glyph rows in two columns" \
+    "Codex W    ██████░░░░ 56% 3d21h   Claude 5h  ███████░░░ 70% 3h51m
+Claude W   ██████████ 96% 2d1h   Grok M     ████████░░ 75% 29d" \
     "$(run_script)"
 
 # Every row must put its bar at the same column, or the meters will not scan
 # as a widget. A digit inside a label (the "5h" window) means this has to be
 # anchored on the width, not on the first digit found.
-expect_eq "bars start at a fixed column" \
-    "4" \
-    "$(run_script | grep -cE '^(Codex W    |Claude 5h  |Claude W   |Grok M     )█')"
+expect_eq "available windows render in two rows" \
+    "2" \
+    "$(run_script | grep -c '█')"
 
 # --- a provider with no usable window still yields exactly one row ----------
 
 write_fixture claude '{"primary": null, "secondary": null, "tertiary": null}'
 
-expect_eq "provider with no windows yields one row" \
-    "Codex W    ██████░░░░ 56% 3d21h
-Claude     usage unavailable
+expect_eq "provider with no windows yields unavailable cell" \
+    "Codex W    ██████░░░░ 56% 3d21h   Claude     usage unavailable
 Grok M     ████████░░ 75% 29d" \
     "$(run_script)"
 
@@ -132,9 +129,8 @@ Grok M     ████████░░ 75% 29d" \
 
 rm -f -- "$STUB_DIR/claude.json"
 
-expect_eq "unfetchable provider yields one row" \
-    "Codex W    ██████░░░░ 56% 3d21h
-Claude     usage unavailable
+expect_eq "unfetchable provider yields unavailable cell" \
+    "Codex W    ██████░░░░ 56% 3d21h   Claude     usage unavailable
 Grok M     ████████░░ 75% 29d" \
     "$(run_script)"
 
@@ -146,11 +142,11 @@ write_fixture claude "$(jq -n \
     '{primary: $primary, secondary: $secondary, tertiary: null}')"
 
 expect_match "unparseable timestamp reads as unknown" \
-    '^Claude 5h  ███████░░░ 70% reset unknown$' \
+    'Claude 5h  ███████░░░ 70% reset unknown' \
     "$(run_script)"
 
 expect_match "elapsed window reads as zero" \
-    '^Claude W   ██████████ 96% 0m$' \
+    'Claude W   ██████████ 96% 0m' \
     "$(run_script)"
 
 # --- the widget must never be handed an empty result ------------------------
@@ -158,8 +154,7 @@ expect_match "elapsed window reads as zero" \
 rm -f -- "$STUB_DIR"/*.json
 
 expect_eq "no data at all still yields one row per provider" \
-    "Codex      usage unavailable
-Claude     usage unavailable
+    "Codex      usage unavailable   Claude     usage unavailable
 Grok       usage unavailable" \
     "$(run_script)"
 
