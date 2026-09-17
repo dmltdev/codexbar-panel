@@ -4,8 +4,8 @@
 two windows per line:
 
 ```
-Codex W    ██████░░░░ 56% 3d21h   Claude 5h  ███████░░░ 70% 3h51m
-Claude W   ██████████ 96% 2d1h   Grok M     ████████░░ 75% 29d
+Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
+Claude W   ██████████ 96% 2d1h     Grok M     ████████░░ 75% 29d
 ```
 
 It is the backing command for a desktop panel widget — originally the KDE Plasma
@@ -51,7 +51,8 @@ Environment overrides:
 | Variable                       | Default | Purpose                                      |
 | ------------------------------ | ------- | -------------------------------------------- |
 | `CODEXBAR_PANEL_TIMEOUT`       | `45`    | Seconds allowed per `codexbar` fetch         |
-| `CODEXBAR_PANEL_PAD_WIDTH`     | `11`    | Column at which the meters start             |
+| `CODEXBAR_PANEL_PAD_WIDTH`     | `11`    | Column at which meters start inside one cell |
+| `CODEXBAR_PANEL_CELL_WIDTH`    | `32`    | Display width of the left packed cell        |
 
 To change which providers are shown, edit the `PROVIDERS` array at the top of
 the script. Entries are `<codexbar provider slug>:<panel label>:<detail label>`.

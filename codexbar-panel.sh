@@ -13,8 +13,8 @@
 # Panel output packs two windows per line: full provider name, compact window
 # label, ten-cell percent-left meter, exact headroom, and compact reset time.
 #
-#   Codex W    ██████░░░░ 56% 3d21h   Claude 5h  ███████░░░ 70% 3h51m
-#   Claude W   ██████████ 96% 2d1h   Grok M     ████████░░ 75% 29d
+#   Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
+#   Claude W   ██████████ 96% 2d1h     Grok M     ████████░░ 75% 29d
 #
 # See README.md for requirements and for the Plasma widget settings.
 
@@ -25,9 +25,14 @@ set -euo pipefail
 # detail view has room for the full name.
 PROVIDERS=("codex:Codex:Codex" "claude:Claude:Claude Code" "grok:Grok:Grok")
 
-# Column at which the values start. Shared by the jq padding and the shell
-# fallbacks so the two cannot drift apart.
+# Column at which the values start inside one cell. Shared by the jq padding
+# and the shell fallbacks so the two cannot drift apart.
 PAD_WIDTH="${CODEXBAR_PANEL_PAD_WIDTH:-11}"
+
+# Display width for the left cell in a packed panel row. The right cell starts
+# after this width plus the separator, so differing percentages and reset
+# strings cannot push the second column sideways.
+CELL_WIDTH="${CODEXBAR_PANEL_CELL_WIDTH:-32}"
 
 # Panel widgets typically refresh on a timer that only restarts once this
 # process exits, so an unbounded fetch would freeze the widget rather than
@@ -221,6 +226,22 @@ fetch_provider() {
     printf '%s\n' "$json"
 }
 
+pad_panel_cell() {
+    local cell="$1"
+    local width
+    local padding
+
+    width="$(jq -rn --arg value "$cell" '$value | length')"
+    padding=$((CELL_WIDTH - width))
+
+    if [ "$padding" -gt 0 ]; then
+        printf '%s%*s' "$cell" "$padding" ''
+    else
+        printf '%s' "$cell"
+    fi
+}
+
+
 print_panel() {
     rows=()
 
@@ -244,7 +265,7 @@ print_panel() {
 
     for ((i = 0; i < ${#rows[@]}; i += 2)); do
         if [ "$((i + 1))" -lt "${#rows[@]}" ]; then
-            printf '%s   %s\n' "${rows[$i]}" "${rows[$((i + 1))]}"
+            printf '%s   %s\n' "$(pad_panel_cell "${rows[$i]}")" "${rows[$((i + 1))]}"
         else
             printf '%s\n' "${rows[$i]}"
         fi
