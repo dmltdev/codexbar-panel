@@ -99,18 +99,23 @@ write_fixture claude "$(jq -n \
     --argjson primary "$(window 30 300 "$(at_offset $((3 * 3600 + 51 * 60 + 30)))")" \
     --argjson secondary "$(window 4 10080 "$(at_offset $((2 * 86400 + 3600 + 120)))")" \
     '{primary: $primary, secondary: $secondary, tertiary: null}')"
+write_fixture grok "$(jq -n \
+    --argjson primary "$(window 25 43200 "$(at_offset $((29 * 86400 + 23 * 3600 + 120)))")" \
+    '{primary: $primary, secondary: null, tertiary: null}')"
+
 
 expect_eq "panel renders one row per window" \
     "Codex wk   56% left, 3d 21h till reset
 Claude 5h  70% left, 3h 51m till reset
-Claude wk  96% left, 2d 1h till reset" \
+Claude wk  96% left, 2d 1h till reset
+Grok mo    75% left, 29d 23h till reset" \
     "$(run_script)"
 
 # Every row must put its percentage at the same column, or the values will not
 # line up in the widget. A digit inside a label (the "5h" window) means this
 # has to be anchored on the width, not on the first digit found.
 expect_eq "values start at a fixed column" \
-    "3" \
+    "4" \
     "$(run_script | grep -cE '^.{11}[0-9]+% left,')"
 
 # --- a provider with no usable window still yields exactly one row ----------
@@ -119,7 +124,8 @@ write_fixture claude '{"primary": null, "secondary": null, "tertiary": null}'
 
 expect_eq "provider with no windows yields one row" \
     "Codex wk   56% left, 3d 21h till reset
-Claude     usage unavailable" \
+Claude     usage unavailable
+Grok mo    75% left, 29d 23h till reset" \
     "$(run_script)"
 
 # --- a provider that cannot be fetched at all still yields exactly one row ---
@@ -128,7 +134,8 @@ rm -f -- "$STUB_DIR/claude.json"
 
 expect_eq "unfetchable provider yields one row" \
     "Codex wk   56% left, 3d 21h till reset
-Claude     usage unavailable" \
+Claude     usage unavailable
+Grok mo    75% left, 29d 23h till reset" \
     "$(run_script)"
 
 # --- unparseable and elapsed reset timestamps degrade, never error -----------
@@ -152,7 +159,8 @@ rm -f -- "$STUB_DIR"/*.json
 
 expect_eq "no data at all still yields one row per provider" \
     "Codex      usage unavailable
-Claude     usage unavailable" \
+Claude     usage unavailable
+Grok       usage unavailable" \
     "$(run_script)"
 
 expect_eq "exit status stays zero when every provider fails" \
@@ -162,15 +170,23 @@ expect_eq "exit status stays zero when every provider fails" \
         echo $?
     )"
 
-# --- detail view covers both providers --------------------------------------
+# --- detail view covers all providers ---------------------------------------
 
 write_fixture codex "$(jq -n \
     --argjson secondary "$(window 44 10080 "$(at_offset $((3 * 86400 + 21 * 3600 + 120)))")" \
     '{primary: null, secondary: $secondary, tertiary: null}')"
+write_fixture grok "$(jq -n \
+    --argjson primary "$(window 25 43200 "$(at_offset $((29 * 86400 + 23 * 3600 + 120)))")" \
+    '{primary: $primary, secondary: null, tertiary: null}')"
 
-expect_match "detail view names both providers" \
+
+expect_match "detail view names unavailable Claude provider" \
     '^Claude Code: usage unavailable$' \
     "$(run_script --details)"
+expect_match "detail view names Grok provider" \
+    '^Grok: 75% left, 29d 23h till reset$' \
+    "$(run_script --details)"
+
 
 expect_match "detail view lists the window" \
     '^  Weekly: 56% left, resets in 3d 21h' \

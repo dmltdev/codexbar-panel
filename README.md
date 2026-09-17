@@ -7,6 +7,7 @@ one row per rate window:
 Codex wk   56% left, 3d 21h till reset
 Claude 5h  70% left, 3h 51m till reset
 Claude wk  96% left, 2d 1h till reset
+Grok mo    75% left, 29d 23h till reset
 ```
 
 It is the backing command for a desktop panel widget — originally the KDE Plasma
@@ -21,7 +22,7 @@ which is what knows how to talk to each provider.
 
 Providers publish more than one rate window and they do not agree on which.
 Codex publishes a weekly window; Claude publishes a 5-hour window and a weekly
-one. Collapsing that into a single number per provider means the row silently
+one; Grok may publish a monthly window. Collapsing that into a single number
 switches between windows as usage shifts, and nothing on screen says which
 window you are looking at. One row per window keeps every row meaning exactly
 one thing, and lanes appearing or disappearing adds or removes rows rather than
@@ -101,8 +102,8 @@ Add a Command Output widget to a panel and set, under its configuration:
 | Font size          | `8`                      |
 | Font family        | `monospace`              |
 
-The font must be monospace or the value columns will not line up. Three rows at
-8pt fit a 46px panel without clipping.
+The font must be monospace or the value columns will not line up. Four rows at
+8pt may need more vertical room than the original three-row setup.
 
 `Wait for command` matters: with it enabled the widget's refresh timer only
 restarts once the process exits, so a hung fetch would freeze the widget rather

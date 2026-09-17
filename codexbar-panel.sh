@@ -24,7 +24,7 @@ set -euo pipefail
 # "<codexbar provider slug>:<panel label>:<detail label>", in display order.
 # The panel label is kept short because it repeats once per rate window; the
 # detail view has room for the full name.
-PROVIDERS=("codex:Codex:Codex" "claude:Claude:Claude Code")
+PROVIDERS=("codex:Codex:Codex" "claude:Claude:Claude Code" "grok:Grok:Grok")
 
 # Column at which the values start. Shared by the jq padding and the shell
 # fallbacks so the two cannot drift apart.
