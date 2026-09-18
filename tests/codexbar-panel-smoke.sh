@@ -123,9 +123,9 @@ write_fixture grok "$(jq -n \
 
 panel_output="$(run_script)"
 
-expect_eq "panel renders glyph rows with Codex and Grok in the first column" \
-    "Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
-Grok M     ████████░░ 75% 29d      Claude W   ██████████ 96% 2d1h" \
+expect_eq "panel renders five-block glyph rows with Codex and Grok in the first column" \
+    "Codex W    ███░░ 56% 3d21h    Claude 5h  ████░ 70% 3h51m
+Grok M     ████░ 75% 29d      Claude W   █████ 96% 2d1h" \
     "$panel_output"
 
 # The second cell must start at the same display column on both rows. A digit
@@ -148,8 +148,8 @@ expect_eq "available windows render in two rows" \
 write_fixture claude '{"primary": null, "secondary": null, "tertiary": null}'
 
 expect_eq "provider with no windows yields unavailable cell" \
-    "Codex W    ██████░░░░ 56% 3d21h    Claude     usage unavailable
-Grok M     ████████░░ 75% 29d" \
+    "Codex W    ███░░ 56% 3d21h    Claude     usage unavailable
+Grok M     ████░ 75% 29d" \
     "$(run_script)"
 
 # --- a provider that cannot be fetched at all still yields exactly one row ---
@@ -157,8 +157,8 @@ Grok M     ████████░░ 75% 29d" \
 rm -f -- "$STUB_DIR/claude.json"
 
 expect_eq "unfetchable provider yields unavailable cell" \
-    "Codex W    ██████░░░░ 56% 3d21h    Claude     usage unavailable
-Grok M     ████████░░ 75% 29d" \
+    "Codex W    ███░░ 56% 3d21h    Claude     usage unavailable
+Grok M     ████░ 75% 29d" \
     "$(run_script)"
 
 # --- unparseable and elapsed reset timestamps degrade, never error -----------
@@ -169,11 +169,11 @@ write_fixture claude "$(jq -n \
     '{primary: $primary, secondary: $secondary, tertiary: null}')"
 
 expect_match "unparseable timestamp reads as unknown" \
-    'Claude 5h  ███████░░░ 70% reset unknown' \
+    'Claude 5h  ████░ 70% reset unknown' \
     "$(run_script)"
 
 expect_match "elapsed window reads as zero" \
-    'Claude W   ██████████ 96% 0m' \
+    'Claude W   █████ 96% 0m' \
     "$(run_script)"
 
 # --- the widget must never be handed an empty result ------------------------
@@ -181,7 +181,7 @@ expect_match "elapsed window reads as zero" \
 rm -f -- "$STUB_DIR"/*.json
 
 expect_eq "no data at all still yields one row per provider" \
-    "Codex      usage unavailable       Claude     usage unavailable
+    "Codex      usage unavailable   Claude     usage unavailable
 Grok       usage unavailable" \
     "$(run_script)"
 

@@ -4,8 +4,8 @@
 two windows per line:
 
 ```
-Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
-Grok M     ████████░░ 75% 29d      Claude W   ██████████ 96% 2d1h
+Codex W    ███░░ 56% 3d21h    Claude 5h  ████░ 70% 3h51m
+Grok M     ████░ 75% 29d      Claude W   █████ 96% 2d1h
 ```
 
 It is the backing command for a desktop panel widget — originally the KDE Plasma
@@ -52,7 +52,7 @@ Environment overrides:
 | ------------------------------ | ------- | -------------------------------------------- |
 | `CODEXBAR_PANEL_TIMEOUT`       | `45`    | Seconds allowed per `codexbar` fetch         |
 | `CODEXBAR_PANEL_PAD_WIDTH`     | `11`    | Column at which meters start inside one cell |
-| `CODEXBAR_PANEL_CELL_WIDTH`    | `32`    | Display width of the left packed cell        |
+| `CODEXBAR_PANEL_CELL_WIDTH`    | `27`    | Display width of the left packed cell        |
 | `CODEXBAR_PANEL_CACHE_FILE`    | `$XDG_CACHE_HOME/codexbar-panel/details.txt` | Detail text cache used by `--popup` |
 
 To change which providers are shown, edit the `PROVIDERS` array at the top of
@@ -121,15 +121,15 @@ on every path and exits `0`:
 | Provider cannot be fetched         | `Claude     usage unavailable`                  |
 | Provider reports no usable window  | `Claude     usage unavailable`                  |
 | `codexbar` or `jq` not on `PATH`   | `Claude     missing: codexbar`                  |
-| Reset timestamp will not parse     | `Claude 5h  ███████░░░ 70% reset unknown`      |
+| Reset timestamp will not parse     | `Claude 5h  ████░ 70% reset unknown`          |
 
 Reset times are always computed from the machine-readable `resetsAt` field,
 never from a provider's own `resetDescription` — Claude returns that with the
 spaces stripped, e.g. `Resets5:30pm(Europe/Sofia)`. Percentages are floored and
 clamped to 0–100 so headroom is never overstated.
 
-Panel cells use a ten-cell bar for percent left. Filled cells are rounded to the
-nearest 10% so `75%` displays as `████████░░`. The panel packs two cells per
+Panel cells use a five-cell bar for percent left. Filled cells are rounded to the
+nearest 20% so `75%` displays as `████░`. The panel packs two cells per
 line; details and popups keep the longer reset description. A normal panel
 refresh also writes the detail text to `CODEXBAR_PANEL_CACHE_FILE`, so
 `--popup` opens the most recently fetched values immediately. If the cache does

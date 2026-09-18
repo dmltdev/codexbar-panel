@@ -11,10 +11,10 @@
 #   codexbar-panel --popup    the same detail in a kdialog textbox
 #
 # Panel output packs two windows per line: full provider name, compact window
-# label, ten-cell percent-left meter, exact headroom, and compact reset time.
+# label, five-cell percent-left meter, exact headroom, and compact reset time.
 #
-#   Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
-#   Grok M     ████████░░ 75% 29d      Claude W   ██████████ 96% 2d1h
+#   Codex W    ███░░ 56% 3d21h    Claude 5h  ████░ 70% 3h51m
+#   Grok M     ████░ 75% 29d      Claude W   █████ 96% 2d1h
 #
 # See README.md for requirements and for the Plasma widget settings.
 
@@ -32,7 +32,7 @@ PAD_WIDTH="${CODEXBAR_PANEL_PAD_WIDTH:-11}"
 # Display width for the left cell in a packed panel row. The right cell starts
 # after this width plus the separator, so differing percentages and reset
 # strings cannot push the second column sideways.
-CELL_WIDTH="${CODEXBAR_PANEL_CELL_WIDTH:-32}"
+CELL_WIDTH="${CODEXBAR_PANEL_CELL_WIDTH:-27}"
 
 # Panel widgets typically refresh on a timer that only restarts once this
 # process exits, so an unbounded fetch would freeze the widget rather than
@@ -118,12 +118,12 @@ def laneShort:
 def padTo($n):
   . + (" " * ([$n - length, 0] | max));
 
-# Ten-cell headroom meter. Rounded to the nearest 10% so midpoints like 75%
-# display as eight filled cells, matching how humans read battery-style meters.
+# Five-cell headroom meter. Rounded to the nearest 20% so the widget stays
+# narrow while still showing rough battery-style capacity.
 def glyphBar:
   percentLeft as $p
-  | ([ (($p / 10 + 0.5) | floor), 10 ] | min) as $filled
-  | ("█" * $filled) + ("░" * (10 - $filled));
+  | ([ (($p / 20 + 0.5) | floor), 5 ] | min) as $filled
+  | ("█" * $filled) + ("░" * (5 - $filled));
 
 # Panel reset text has no prose or spaces. Long monthly windows keep days only
 # so the Grok row stays narrow, while shorter windows keep the useful hour/minute.
