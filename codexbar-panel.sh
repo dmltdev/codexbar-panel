@@ -14,7 +14,7 @@
 # label, ten-cell percent-left meter, exact headroom, and compact reset time.
 #
 #   Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
-#   Claude W   ██████████ 96% 2d1h     Grok M     ████████░░ 75% 29d
+#   Grok M     ████████░░ 75% 29d      Claude W   ██████████ 96% 2d1h
 #
 # See README.md for requirements and for the Plasma widget settings.
 
@@ -243,7 +243,10 @@ pad_panel_cell() {
 
 
 print_panel() {
-    rows=()
+    local left_rows=()
+    local right_rows=()
+    local provider_rows=()
+    local entry slug short json rendered
 
     for entry in "${PROVIDERS[@]}"; do
         IFS=: read -r slug short _detail <<<"$entry"
@@ -254,20 +257,32 @@ print_panel() {
                 pick($slug) | panelRows($label; $pad)[]
             ' <<<"$json" 2>/dev/null)" && [ -n "$rendered" ]; then
                 mapfile -t provider_rows <<<"$rendered"
-                rows+=("${provider_rows[@]}")
             else
-                rows+=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
+                provider_rows=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
             fi
         else
-            rows+=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
+            provider_rows=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
+        fi
+
+        if [ "$slug" = "claude" ]; then
+            right_rows+=("${provider_rows[@]}")
+        else
+            left_rows+=("${provider_rows[@]}")
         fi
     done
 
-    for ((i = 0; i < ${#rows[@]}; i += 2)); do
-        if [ "$((i + 1))" -lt "${#rows[@]}" ]; then
-            printf '%s   %s\n' "$(pad_panel_cell "${rows[$i]}")" "${rows[$((i + 1))]}"
+    local row_count="${#left_rows[@]}"
+    if [ "${#right_rows[@]}" -gt "$row_count" ]; then
+        row_count="${#right_rows[@]}"
+    fi
+
+    for ((i = 0; i < row_count; i += 1)); do
+        if [ "$i" -lt "${#left_rows[@]}" ] && [ "$i" -lt "${#right_rows[@]}" ]; then
+            printf '%s   %s\n' "$(pad_panel_cell "${left_rows[$i]}")" "${right_rows[$i]}"
+        elif [ "$i" -lt "${#left_rows[@]}" ]; then
+            printf '%s\n' "${left_rows[$i]}"
         else
-            printf '%s\n' "${rows[$i]}"
+            printf '%*s   %s\n' "$CELL_WIDTH" '' "${right_rows[$i]}"
         fi
     done
 }

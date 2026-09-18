@@ -89,7 +89,7 @@ expect_match() {
     fi
 }
 
-# --- two-column glyph rows, shortest windows first, values aligned ----------
+# --- two-column glyph rows, grouped by provider, values aligned ------------
 
 write_fixture codex "$(jq -n \
     --argjson secondary "$(window 44 10080 "$(at_offset $((3 * 86400 + 21 * 3600 + 120)))")" \
@@ -106,9 +106,9 @@ write_fixture grok "$(jq -n \
 
 panel_output="$(run_script)"
 
-expect_eq "panel renders glyph rows in two aligned columns" \
+expect_eq "panel renders glyph rows with Codex and Grok in the first column" \
     "Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
-Claude W   ██████████ 96% 2d1h     Grok M     ████████░░ 75% 29d" \
+Grok M     ████████░░ 75% 29d      Claude W   ██████████ 96% 2d1h" \
     "$panel_output"
 
 # The second cell must start at the same display column on both rows. A digit
@@ -117,7 +117,7 @@ Claude W   ██████████ 96% 2d1h     Grok M     ████�
 row_one="${panel_output%%$'\n'*}"
 row_two="${panel_output#*$'\n'}"
 prefix_one="${row_one%%Claude 5h*}"
-prefix_two="${row_two%%Grok M*}"
+prefix_two="${row_two%%Claude W*}"
 expect_eq "second column starts at the same display column" \
     "$(jq -rn --arg s "$prefix_one" '$s | length')" \
     "$(jq -rn --arg s "$prefix_two" '$s | length')"

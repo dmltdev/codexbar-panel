@@ -5,7 +5,7 @@ two windows per line:
 
 ```
 Codex W    ██████░░░░ 56% 3d21h    Claude 5h  ███████░░░ 70% 3h51m
-Claude W   ██████████ 96% 2d1h     Grok M     ████████░░ 75% 29d
+Grok M     ████████░░ 75% 29d      Claude W   ██████████ 96% 2d1h
 ```
 
 It is the backing command for a desktop panel widget — originally the KDE Plasma
