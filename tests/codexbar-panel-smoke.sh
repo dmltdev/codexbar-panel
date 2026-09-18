@@ -34,11 +34,28 @@ while [ $# -gt 0 ]; do
     *) shift ;;
   esac
 done
+if [ -n "${CODEXBAR_STUB_LOG:-}" ]; then
+  printf '%s\n' "$provider" >>"$CODEXBAR_STUB_LOG"
+fi
 fixture="$CODEXBAR_STUB_DIR/$provider.json"
 [ -f "$fixture" ] || exit 1
 cat -- "$fixture"
 STUB
 chmod +x -- "$BIN_DIR/codexbar"
+cat >"$BIN_DIR/kdialog" <<'STUB'
+#!/bin/sh
+set -eu
+textbox=""
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --textbox) textbox="${2-}"; shift 2 ;;
+    *) shift ;;
+  esac
+done
+[ -n "$textbox" ] || exit 1
+cat -- "$textbox"
+STUB
+chmod +x -- "$BIN_DIR/kdialog"
 
 export CODEXBAR_STUB_DIR="$STUB_DIR"
 export PATH="$BIN_DIR:$PATH"
@@ -196,6 +213,32 @@ expect_match "detail view names Grok provider" \
 expect_match "detail view lists the window" \
     '^  Weekly: 56% left, resets in 3d 21h' \
     "$(run_script --details)"
+
+# --- details cache keeps click popups fast ----------------------------------
+
+export CODEXBAR_PANEL_CACHE_FILE="$TMP_DIR/details-cache.txt"
+rm -f -- "$CODEXBAR_PANEL_CACHE_FILE"
+
+run_script >/dev/null
+expect_match "panel refresh writes details cache" \
+    '^Grok: 75% left, 29d 23h till reset$' \
+    "$(cat -- "$CODEXBAR_PANEL_CACHE_FILE" 2>/dev/null || true)"
+
+printf '%s\n' 'cached detail text' >"$CODEXBAR_PANEL_CACHE_FILE"
+export CODEXBAR_STUB_LOG="$TMP_DIR/codexbar-calls.log"
+: >"$CODEXBAR_STUB_LOG"
+expect_eq "popup uses cached details without fetching" \
+    "cached detail text" \
+    "$(run_script --popup)"
+expect_eq "cached popup makes no codexbar calls" \
+    "" \
+    "$(cat -- "$CODEXBAR_STUB_LOG")"
+unset CODEXBAR_STUB_LOG
+rm -f -- "$CODEXBAR_PANEL_CACHE_FILE"
+run_script --popup >/dev/null
+expect_match "popup fallback writes details cache" \
+    '^Grok: 75% left, 29d 23h till reset$' \
+    "$(cat -- "$CODEXBAR_PANEL_CACHE_FILE" 2>/dev/null || true)"
 
 # --- usage errors ----------------------------------------------------------
 

@@ -39,6 +39,10 @@ CELL_WIDTH="${CODEXBAR_PANEL_CELL_WIDTH:-32}"
 # just skip a cycle. Every codexbar call is bounded by this.
 FETCH_TIMEOUT="${CODEXBAR_PANEL_TIMEOUT:-45}"
 
+# Detail text cache used by --popup. Panel refreshes update it after fetching;
+# clicks read it immediately and only fetch when the cache has not been seeded.
+CACHE_FILE="${CODEXBAR_PANEL_CACHE_FILE:-${XDG_CACHE_HOME:-$HOME/.cache}/codexbar-panel/details.txt}"
+
 # Shared jq definitions, used by both the panel rows and the detail view.
 #
 # Reset times are always derived from `resetsAt`. The providers' own
@@ -225,6 +229,39 @@ fetch_provider() {
     [ -n "$json" ] || return 1
     printf '%s\n' "$json"
 }
+detail_from_json() {
+    local label="$1"
+    local slug="$2"
+    local json="$3"
+
+    jq -r --arg label "$label" --arg slug "$slug" "$JQ_DEFS"'
+        pick($slug) | detailBlock($label)
+    ' <<<"$json" 2>/dev/null ||
+        printf '%s: usage unavailable\n' "$label"
+}
+
+write_details_cache() {
+    local content="$1"
+    local cache_dir tmp_file
+
+    cache_dir="$(dirname -- "$CACHE_FILE")"
+    mkdir -p -- "$cache_dir" || return 0
+    tmp_file="$(mktemp --tmpdir="$cache_dir" .details.XXXXXX)" || return 0
+    printf '%s\n' "$content" >"$tmp_file" || {
+        rm -f -- "$tmp_file"
+        return 0
+    }
+    mv -f -- "$tmp_file" "$CACHE_FILE" || rm -f -- "$tmp_file"
+}
+
+read_details_cache() {
+    [ -s "$CACHE_FILE" ] || return 1
+    cat -- "$CACHE_FILE"
+}
+
+join_detail_blocks() {
+    printf '%s\n\n' "$@" | sed '$d'
+}
 
 pad_panel_cell() {
     local cell="$1"
@@ -241,15 +278,15 @@ pad_panel_cell() {
     fi
 }
 
-
 print_panel() {
     local left_rows=()
     local right_rows=()
     local provider_rows=()
-    local entry slug short json rendered
+    local detail_blocks=()
+    local entry slug short detail json rendered detail_text
 
     for entry in "${PROVIDERS[@]}"; do
-        IFS=: read -r slug short _detail <<<"$entry"
+        IFS=: read -r slug short detail <<<"$entry"
 
         if json="$(fetch_provider "$slug")"; then
             if rendered="$(jq -r --arg label "$short" --arg slug "$slug" --argjson pad "$PAD_WIDTH" \
@@ -260,9 +297,13 @@ print_panel() {
             else
                 provider_rows=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
             fi
+            detail_text="$(detail_from_json "$detail" "$slug" "$json")"
         else
             provider_rows=("$(printf "%-${PAD_WIDTH}s%s" "$short" "usage unavailable")")
+            detail_text="$detail: usage unavailable"
         fi
+
+        detail_blocks+=("$detail_text")
 
         if [ "$slug" = "claude" ]; then
             right_rows+=("${provider_rows[@]}")
@@ -285,26 +326,30 @@ print_panel() {
             printf '%*s   %s\n' "$CELL_WIDTH" '' "${right_rows[$i]}"
         fi
     done
+
+    write_details_cache "$(join_detail_blocks "${detail_blocks[@]}")"
 }
 
 print_details() {
-    separator=""
+    local separator=""
+    local detail_blocks=()
+    local entry slug detail json detail_text
 
     for entry in "${PROVIDERS[@]}"; do
         IFS=: read -r slug _short detail <<<"$entry"
 
-        printf '%s' "$separator"
-        separator=$'\n'
-
         if json="$(fetch_provider "$slug")"; then
-            jq -r --arg label "$detail" --arg slug "$slug" "$JQ_DEFS"'
-                pick($slug) | detailBlock($label)
-            ' <<<"$json" 2>/dev/null ||
-                printf '%s: usage unavailable\n' "$detail"
+            detail_text="$(detail_from_json "$detail" "$slug" "$json")"
         else
-            printf '%s: usage unavailable\n' "$detail"
+            detail_text="$detail: usage unavailable"
         fi
+
+        detail_blocks+=("$detail_text")
+        printf '%s%s' "$separator" "$detail_text"
+        separator=$'\n\n'
     done
+
+    write_details_cache "$(join_detail_blocks "${detail_blocks[@]}")"
 }
 
 show_popup() {
@@ -313,9 +358,14 @@ show_popup() {
     details_file="$(mktemp --tmpdir codexbar-panel.XXXXXX)"
     trap 'rm -f "$details_file"' EXIT
 
-    print_details >"$details_file"
+    if ! read_details_cache >"$details_file"; then
+        require_commands codexbar jq || exit 1
+        print_details >"$details_file"
+    fi
+
     kdialog --title "AI Usage Limits" --textbox "$details_file" 560 400 || true
 }
+
 
 main() {
     case "${1-}" in
@@ -336,7 +386,6 @@ main() {
         print_details
         ;;
     --popup)
-        require_commands codexbar jq || exit 1
         show_popup
         ;;
     -h | --help)

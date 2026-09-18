@@ -53,6 +53,7 @@ Environment overrides:
 | `CODEXBAR_PANEL_TIMEOUT`       | `45`    | Seconds allowed per `codexbar` fetch         |
 | `CODEXBAR_PANEL_PAD_WIDTH`     | `11`    | Column at which meters start inside one cell |
 | `CODEXBAR_PANEL_CELL_WIDTH`    | `32`    | Display width of the left packed cell        |
+| `CODEXBAR_PANEL_CACHE_FILE`    | `$XDG_CACHE_HOME/codexbar-panel/details.txt` | Detail text cache used by `--popup` |
 
 To change which providers are shown, edit the `PROVIDERS` array at the top of
 the script. Entries are `<codexbar provider slug>:<panel label>:<detail label>`.
@@ -129,7 +130,10 @@ clamped to 0–100 so headroom is never overstated.
 
 Panel cells use a ten-cell bar for percent left. Filled cells are rounded to the
 nearest 10% so `75%` displays as `████████░░`. The panel packs two cells per
-line; details and popups keep the longer reset description.
+line; details and popups keep the longer reset description. A normal panel
+refresh also writes the detail text to `CODEXBAR_PANEL_CACHE_FILE`, so
+`--popup` opens the most recently fetched values immediately. If the cache does
+not exist yet, `--popup` falls back to fetching once and seeds it.
 
 ## Development
 
